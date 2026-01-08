@@ -12,7 +12,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
   .then(() => console.log('✓ Connected to MongoDB'))
   .catch(err => console.error('✗ MongoDB connection error:', err.message));
 
@@ -55,8 +58,7 @@ app.get('/api/history', async (req, res) => {
 // Save new data (called by ESP32)
 app.post('/api/data', async (req, res) => {
   try {
-    console.log('Received POST request:', req.body);
-    
+    console.log('Received POST:', req.body);
     const { temperature, humidity } = req.body;
     
     if (temperature === undefined || humidity === undefined) {
@@ -74,9 +76,15 @@ app.post('/api/data', async (req, res) => {
   }
 });
 
-// Default route
+// Serve frontend
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/index.html');
 });
 
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found', path: req.path });
+});
+
+// Export for Vercel
 module.exports = app;
