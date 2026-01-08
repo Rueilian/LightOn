@@ -49,10 +49,16 @@ app.get('/api/history', async (req, res) => {
 app.post('/api/data', async (req, res) => {
   try {
     const { temperature, humidity } = req.body;
+    
+    if (temperature === undefined || humidity === undefined) {
+      return res.status(400).json({ error: 'Missing temperature or humidity' });
+    }
+    
     const newData = new SensorData({ temperature, humidity });
     await newData.save();
-    res.json({ success: true, data: newData });
+    res.status(200).json({ success: true, data: newData });
   } catch (error) {
+    console.error('Error saving data:', error);
     res.status(500).json({ error: error.message });
   }
 });
