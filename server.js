@@ -5,8 +5,10 @@ require('dotenv').config();
 
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 // MongoDB Connection
@@ -24,6 +26,11 @@ const dataSchema = new mongoose.Schema({
 const SensorData = mongoose.model('SensorData', dataSchema);
 
 // API Routes
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK' });
+});
 
 // Get latest data
 app.get('/api/latest', async (req, res) => {
@@ -48,6 +55,8 @@ app.get('/api/history', async (req, res) => {
 // Save new data (called by ESP32)
 app.post('/api/data', async (req, res) => {
   try {
+    console.log('Received POST request:', req.body);
+    
     const { temperature, humidity } = req.body;
     
     if (temperature === undefined || humidity === undefined) {
@@ -56,6 +65,8 @@ app.post('/api/data', async (req, res) => {
     
     const newData = new SensorData({ temperature, humidity });
     await newData.save();
+    
+    console.log('Data saved:', newData);
     res.status(200).json({ success: true, data: newData });
   } catch (error) {
     console.error('Error saving data:', error);
@@ -63,12 +74,9 @@ app.post('/api/data', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🌐 Server running on port ${PORT}`);
-  console.log(`📡 From Windows: Use your Windows IP (e.g., 192.168.x.x:${PORT})`);
-  console.log(`   Find it with: ipconfig (in Windows PowerShell)`);
-  console.log(`📊 Dashboard: http://YOUR_WINDOWS_IP:${PORT}`);
-  console.log(`📡 ESP32 endpoint: http://YOUR_WINDOWS_IP:${PORT}/api/data\n`);
+// Default route
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/public/index.html');
 });
+
+module.exports = app;
