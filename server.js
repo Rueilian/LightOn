@@ -10,23 +10,23 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// HEALTH CHECK - responds instantly (Railway uses this)
+// HEALTH CHECK - MUST respond instantly, before MongoDB
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'healthy' });
+  console.log('[HEALTH CHECK]');
+  res.status(200).send('OK');
 });
 
-// API health endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK' });
 });
 
-// Serve frontend dashboard at root
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/index.html');
 });
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
+// MongoDB Connection - happens in background
+console.log('Connecting to MongoDB...');
+mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
   .then(() => console.log('✓ Connected to MongoDB'))
   .catch(err => console.error('✗ MongoDB connection error:', err.message));
 
@@ -77,25 +77,16 @@ app.get('/api/history', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚀 Server listening on port ${PORT}`);
-  console.log(`📱 Access at: http://localhost:${PORT}`);
-  console.log(`🌐 Dashboard: http://localhost:${PORT}/`);
-  console.log(`📊 API Health: http://localhost:${PORT}/api/health\n`);
+  console.log(`✅ Ready to accept requests\n`);
 });
 
-// Simple timeout handler - exit cleanly after 30 seconds of no activity
-let lastActivity = Date.now();
-app.use((req, res, next) => {
-  lastActivity = Date.now();
-  next();
-});
-
-// Exit on SIGTERM but don't wait
+// Handle shutdown signals
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received');
+  console.log('SIGTERM - shutting down');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT received');
+  console.log('SIGINT - shutting down');
   process.exit(0);
 });
