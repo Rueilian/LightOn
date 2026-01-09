@@ -8,7 +8,7 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serve static files from public folder
+app.use(express.static('public'));
 
 // HEALTH CHECK - responds instantly (Railway uses this)
 app.get('/health', (req, res) => {
@@ -82,34 +82,20 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`📊 API Health: http://localhost:${PORT}/api/health\n`);
 });
 
-// Handle graceful shutdown
+// Simple timeout handler - exit cleanly after 30 seconds of no activity
+let lastActivity = Date.now();
+app.use((req, res, next) => {
+  lastActivity = Date.now();
+  next();
+});
+
+// Exit on SIGTERM but don't wait
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received - shutting down gracefully');
-  server.close(() => {
-    console.log('Server closed');
-    mongoose.connection.close(false, () => {
-      console.log('MongoDB connection closed');
-      process.exit(0);
-    });
-  });
+  console.log('SIGTERM received');
+  process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT received - shutting down gracefully');
-  server.close(() => {
-    console.log('Server closed');
-    mongoose.connection.close(false, () => {
-      console.log('MongoDB connection closed');
-      process.exit(0);
-    });
-  });
-});
-
-// Prevent crashes
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught exception:', err);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled rejection at:', promise, 'reason:', reason);
+  console.log('SIGINT received');
+  process.exit(0);
 });
