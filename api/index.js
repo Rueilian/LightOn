@@ -7,25 +7,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-console.log('API server started');
-
-// Test route
-app.get('/test', (req, res) => {
-  res.json({ message: 'Test endpoint works!' });
-});
-
 const MONGODB_URI = process.env.MONGODB_URI;
 
 let cached = global.mongoose || { conn: null, promise: null };
 
 async function connectDB() {
-  if (cached.conn) {
-    return cached.conn;
-  }
+  if (cached.conn) return cached.conn;
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, {
-      bufferCommands: false,
-    });
+    cached.promise = mongoose.connect(MONGODB_URI, { bufferCommands: false });
   }
   cached.conn = await cached.promise;
   return cached.conn;
@@ -39,22 +28,17 @@ const dataSchema = new mongoose.Schema({
 
 const SensorData = mongoose.model('SensorData', dataSchema);
 
-// Routes
 app.post('/api/data', async (req, res) => {
   try {
-    console.log('POST /api/data called');
     await connectDB();
     const { temperature, humidity } = req.body;
-    
     if (temperature === undefined || humidity === undefined) {
       return res.status(400).json({ error: 'Missing fields' });
     }
-    
     const data = new SensorData({ temperature, humidity });
     await data.save();
     res.json({ success: true, data });
   } catch (error) {
-    console.error('Error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -79,4 +63,9 @@ app.get('/api/latest', async (req, res) => {
   }
 });
 
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/../public/index.html');
+});
+
+// Export handler for Vercel
 module.exports = app;
