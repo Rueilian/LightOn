@@ -10,9 +10,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// HEALTH CHECK - MUST respond instantly, before MongoDB
+// HEALTH CHECK - responds instantly
 app.get('/health', (req, res) => {
-  console.log('[HEALTH CHECK]');
   res.status(200).send('OK');
 });
 
@@ -20,13 +19,13 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK' });
 });
 
+// Serve dashboard
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/index.html');
 });
 
-// MongoDB Connection - happens in background
-console.log('Connecting to MongoDB...');
-mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
+// MongoDB Connection
+mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✓ Connected to MongoDB'))
   .catch(err => console.error('✗ MongoDB connection error:', err.message));
 
@@ -73,20 +72,15 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
-// Start server
+// USE RAILWAY'S PORT - THIS IS THE KEY FIX
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚀 Server listening on port ${PORT}`);
   console.log(`✅ Ready to accept requests\n`);
 });
 
-// Handle shutdown signals
+// Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM - shutting down');
-  process.exit(0);
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT - shutting down');
+  console.log('Shutting down gracefully');
   process.exit(0);
 });
