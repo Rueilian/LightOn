@@ -9,11 +9,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// SIMPLE TEST
-app.get('/', (req, res) => {
-  res.json({ message: 'Server is running!' });
+// HEALTH CHECK - responds instantly (Railway uses this)
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
 });
 
+// API health endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK' });
 });
