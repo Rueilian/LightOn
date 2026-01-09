@@ -9,6 +9,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// SIMPLE TEST ROUTE - respond immediately
+app.get('/', (req, res) => {
+  res.status(200).json({ message: 'LightOn API running!' });
+});
+
 app.use(express.static('public'));
 
 // MongoDB Connection
@@ -27,7 +33,7 @@ const SensorData = mongoose.model('SensorData', dataSchema);
 
 // API Routes
 
-// Health check - SIMPLE TEST
+// Health check
 app.get('/api/health', (req, res) => {
   console.log('Health check requested');
   res.status(200).json({ status: 'OK', mongodb: 'connected' });
@@ -86,8 +92,8 @@ app.use((req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on 0.0.0.0:${PORT}`);
 });
 
 // Handle errors
@@ -97,4 +103,14 @@ server.on('error', (err) => {
 
 process.on('uncaughtException', (err) => {
   console.error('Uncaught exception:', err);
+  process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });
