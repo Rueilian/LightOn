@@ -27,9 +27,10 @@ const SensorData = mongoose.model('SensorData', dataSchema);
 
 // API Routes
 
-// Health check
+// Health check - SIMPLE TEST
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK' });
+  console.log('Health check requested');
+  res.status(200).json({ status: 'OK', mongodb: 'connected' });
 });
 
 // Get latest data
