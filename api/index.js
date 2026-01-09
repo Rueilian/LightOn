@@ -7,6 +7,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+console.log('API server started');
+
+// Test route
+app.get('/test', (req, res) => {
+  res.json({ message: 'Test endpoint works!' });
+});
+
 const MONGODB_URI = process.env.MONGODB_URI;
 
 let cached = global.mongoose || { conn: null, promise: null };
@@ -35,6 +42,7 @@ const SensorData = mongoose.model('SensorData', dataSchema);
 // Routes
 app.post('/api/data', async (req, res) => {
   try {
+    console.log('POST /api/data called');
     await connectDB();
     const { temperature, humidity } = req.body;
     
@@ -46,6 +54,7 @@ app.post('/api/data', async (req, res) => {
     await data.save();
     res.json({ success: true, data });
   } catch (error) {
+    console.error('Error:', error);
     res.status(500).json({ error: error.message });
   }
 });
