@@ -69,7 +69,10 @@ app.get('/api/history', async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server listening on 0.0.0.0:${PORT}`);
+  console.log(`\n🚀 Server listening on port ${PORT}`);
+  console.log(`📱 Access at: http://localhost:${PORT}`);
+  console.log(`🌐 Dashboard: http://localhost:${PORT}/`);
+  console.log(`📊 API Health: http://localhost:${PORT}/api/health\n`);
 });
 
 // Handle graceful shutdown
