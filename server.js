@@ -8,21 +8,21 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// SIMPLE TEST ROUTE - respond immediately
+// SIMPLE TEST
 app.get('/', (req, res) => {
-  res.status(200).json({ message: 'LightOn API running!' });
+  res.json({ message: 'Server is running!' });
 });
 
-app.use(express.static('public'));
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK' });
+});
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✓ Connected to MongoDB'))
   .catch(err => console.error('✗ MongoDB connection error:', err.message));
 
-// Data Schema
 const dataSchema = new mongoose.Schema({
   temperature: Number,
   humidity: Number,
@@ -32,24 +32,32 @@ const dataSchema = new mongoose.Schema({
 const SensorData = mongoose.model('SensorData', dataSchema);
 
 // API Routes
-
-// Health check
-app.get('/api/health', (req, res) => {
-  console.log('Health check requested');
-  res.status(200).json({ status: 'OK', mongodb: 'connected' });
-});
-
-// Get latest data
-app.get('/api/latest', async (req, res) => {
+app.post('/api/data', async (req, res) => {
   try {
-    const data = await SensorData.findOne().sort({ timestamp: -1 });
-    res.json(data || { temperature: 0, humidity: 0 });
+    await mongoose.connection.db.admin().ping();
+    const { temperature, humidity } = req.body;
+    
+    if (temperature === undefined || humidity === undefined) {
+      return res.status(400).json({ error: 'Missing fields' });
+    }
+    
+    const data = new SensorData({ temperature, humidity });
+    await data.save();
+    res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get all historical data
+app.get('/api/latest', async (req, res) => {
+  try {
+    const data = await SensorData.findOne().sort({ timestamp: -1 });
+    res.json(data || {});
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/history', async (req, res) => {
   try {
     const data = await SensorData.find().sort({ timestamp: -1 }).limit(100);
@@ -59,58 +67,8 @@ app.get('/api/history', async (req, res) => {
   }
 });
 
-// Save new data (called by ESP32)
-app.post('/api/data', async (req, res) => {
-  try {
-    console.log('Received POST:', req.body);
-    const { temperature, humidity } = req.body;
-    
-    if (temperature === undefined || humidity === undefined) {
-      return res.status(400).json({ error: 'Missing temperature or humidity' });
-    }
-    
-    const newData = new SensorData({ temperature, humidity });
-    await newData.save();
-    
-    console.log('Data saved:', newData);
-    res.status(200).json({ success: true, data: newData });
-  } catch (error) {
-    console.error('Error saving data:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Serve frontend
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/index.html');
-});
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not found', path: req.path });
-});
-
 // Start server
 const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server running on 0.0.0.0:${PORT}`);
-});
-
-// Handle errors
-server.on('error', (err) => {
-  console.error('Server error:', err);
-});
-
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught exception:', err);
-  process.exit(1);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    console.log('Server closed');
-    process.exit(0);
-  });
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
